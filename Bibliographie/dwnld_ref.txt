@@ -1,0 +1,18 @@
+1. Suvam Mukherjee and Tamal Chakrabarti
+"Automatic Algorithm Specification to Source Code Translation"
+Indian Journal of Computer Science and Engineering, 2011 on, vol. 2, no. 2, pp. 146-159, April-May, 2011
+
+2. David Price, Ellen Riloff, Joseph Zachary and Brandon Harvey
+"NaturalJava: A Natural Language Interface for Programming in Java"
+pp. 207-211
+
+3. Rada Mihalcea, Hugo Liu and Henry Lieberman
+"NLP (Natural Language Processing) for NLP (Natural Language Programming)"
+in the 7th International Conference on Computational Linguistics and Intelligent Text Processing, LNCS
+
+4. Ballard, B., Bierman and A
+"Programming in natural language: NLC as a prototype"
+
+5. Biermann, A., Ballard, B., Sigmon and A
+"An Experimental Study of Natural Language Programming"
+International Journal of Man-Machine Studies, vol. 18, pp. 71-87, 1983
