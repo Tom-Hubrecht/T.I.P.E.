@@ -59,13 +59,13 @@ def define__(sen):
                 raise SyntaxError("'of' expected")
             else:
                 args = []
-            suffix = 'define__(' + name + ',' + class__ + ',' + ';'.join(args) + ')'
+            suffix = 'define__' + name + ',' + class__ + ',' + ';'.join(args)
             loc.append(name)
         else:
             class__ = "var"
             expr = sen[2:]
             type__(name,expr,loc[-1])
-            suffix = 'define__(' + name + ',' + class__ + ',' + ' '.join(expr) + ')'
+            suffix = 'define__' + name + ',' + class__ + ',' + ' '.join(expr)
     else:
         raise SyntaxError("'as' expected after 'define'")
     file_aux.write(suffix + "\n")
@@ -77,13 +77,46 @@ def print__(sen):
         name = sen[0]
         varName = name + '_' + loc[-1]
         varType = varList[varName]
-        suffix = 'print__(' + name + ',' + varType + ')'
+        suffix = 'print__' + name + ',' + varType
+    elif sen[0][0] == '"':
+        suffix = 'print__' + ' '.join(sen) + ',str'
     else:
-        suffix = 'print__(' + 'name' + ')'
-
+        suffix = 'print__' + 'placeholder'
 
     file_aux.write(suffix + "\n")
 
+def exprType(sen):
+    operators = ['+','-','*','/']
+    name = '_'.join([sen[0],loc[-1]])
+    try:
+        expType = varList[name]
+    except KeyError:
+        try:
+            int(sen[0])
+            expType = 'int'
+        except ValueError:
+            if sen[0][0] == '"':
+                expType = 'str'
+            else:
+                raise NameError("Variable not declared")
+    for word in sen[1:]:
+            name = '_'.join([word,loc[-1]])
+            if not(word in operators):
+                try:
+                    expType_temp = varList[name]
+                except KeyError:
+                    try:
+                        int(word)
+                        expType_temp = 'int'
+                    except ValueError:
+                        if word[0] == '"':
+                            expType_temp = 'str'
+                        else:
+                            raise NameError("Variable not declared")
+            if expType_temp != expType :
+                raise ValueError("Types not valid")
+    return expType
+                
 
 #def return__(sen):
 
@@ -133,7 +166,7 @@ def caml(name):
 
     for var in varList:
         file_caml.write(var + ' ' + varList[var] + "\n")
-
+        
     file_caml.close()
     source.close()
     os.remove(name + '.temp')
