@@ -5,7 +5,7 @@ def Init():
 
     global file_aux
 
-    global funList
+    global funList # Structure : {funName_funLoc : [funType, arg1_arg1Type, arg2_arg2_Type, ...]}
     global varList # Structure : { varName_varLoc : varType }
     global loc
 
@@ -14,7 +14,7 @@ def Init():
 
     # Global Variables Definition
     cwd = os.getcwd()
-    funList = []
+    funList = {}
     varList = {}
     loc = ['global']
 
@@ -39,9 +39,7 @@ def type__(var,expr,loc):
     else:
         type_ = 'int'
 
-    try:
-        varList[name]
-    except KeyError:
+    if name not in varList:
         varList[name] = type_
     else:
         raise NameError("Variable name is already in use")
@@ -103,7 +101,7 @@ def exprType(sen):
             name = '_'.join([word,loc[-1]])
             if not(word in operators):
                 try:
-                    expType_temp = varList[name]
+                    expType_temp = varList[name].split('_')[0]
                 except KeyError:
                     try:
                         int(word)
@@ -113,8 +111,8 @@ def exprType(sen):
                             expType_temp = 'str'
                         else:
                             raise NameError("Variable not declared")
-            if expType_temp != expType :
-                raise ValueError("Types not valid")
+                if expType_temp != expType :
+                    raise ValueError("Types not valid")
     return expType
                 
 
