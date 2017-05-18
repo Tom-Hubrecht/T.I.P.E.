@@ -1,9 +1,11 @@
-define__(f,fun,x;y)
-define__(p,var,3 + x)
-define__(cste,var,3)
-print__(name)
-print__(p,int)
-print__(name)
-print__(p,int_ref)
-p_f int_ref
-cste_f int
+let f x y = 
+let p = 3 + x in 
+let cste = 3 in 
+#__for i from 10 to 15
+print__placeholder
+#__end_for
+print_int(p);
+print_string("Hello world");
+change__p := to 15
+print_int(p);
+#__end_f
