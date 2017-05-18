@@ -6,7 +6,7 @@ def Init():
     global file_aux
 
     global funList # Structure : {funName_funLoc : [funType, arg1_arg1Type, arg2_arg2_Type, ...]}
-    global varList # Structure : { varName_varLoc : varType }
+    global varList # Structure : {varName_varLoc : varType}
     global loc
 
     # Import Modules
@@ -59,6 +59,11 @@ def define__(sen):
                 args = []
             suffix = 'define__' + name + ',' + class__ + ',' + ';'.join(args)
             loc.append(name)
+            name = '_'.join([name,loc[-1]])
+            #Fill the funList dictionary
+            funList[name] = ['']
+            for arg in args:
+                funList[name].append(arg)
         else:
             class__ = "var"
             expr = sen[2:]
@@ -67,6 +72,15 @@ def define__(sen):
     else:
         raise SyntaxError("'as' expected after 'define'")
     file_aux.write(suffix + "\n")
+
+
+#def returnType():
+#       for line in file_aux:
+#           if line[:6] == 'define' and line[10:13] == 'fun':
+               
+               
+               
+               
 
 
 def print__(sen):
@@ -82,6 +96,7 @@ def print__(sen):
         suffix = 'print__' + 'placeholder'
 
     file_aux.write(suffix + "\n")
+
 
 def exprType(sen):
     operators = ['+','-','*','/']
@@ -125,6 +140,7 @@ def change__(sen):
     if varList[name]:
         varList[name] += '_ref'
 
+
 def translate(line):
     line_ = line.strip('\n')
     words = line_.split(' ')
@@ -155,8 +171,18 @@ def caml(name):
         file_caml = open(otp_path, 'xt')
 
     for line in source:
-        camlLine = line
-
+        #camlLine = line
+        line_ = line.strip('\n')
+        inst, sen = line_.split('__')
+        toto = sen.split(',')
+        if inst == 'define':
+            name_ = toto[0]
+            if toto[1] == 'var':
+                camlLine = 'let ' + name_ + ' = ' + toto [2]
+            else:
+                args = toto[2].split(';')
+                curry = ' '.join(args)
+                camlLine = 'let ' + name_ + ' ' + curry + ' = '
 
 
 
@@ -179,6 +205,8 @@ def main():
 
     for line in file_src :
         translate(line)
+
+#    returnType()
 
     file_aux.close()
     file_src.close()
