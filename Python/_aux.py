@@ -91,7 +91,7 @@ def print__(sen):
     elif sen[0][0] == '"':
         suffix = 'print__' + ' '.join(sen) + ',str'
     else:
-        suffix = 'print__' + 'placeholder'
+        suffix = 'print__' + ' '.join(sen) + ',' + exprType(sen)
 
     file_aux.write(suffix + "\n")
 
