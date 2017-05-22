@@ -178,7 +178,11 @@ def caml(name):
         if inst == 'define':
             name_ = toto[0]
             if toto[1] == 'var':
-                camlLine = 'let ' + name_ + ' = ' + toto[2] + ' in '
+                var = name_ + '_' + loc[-1]
+                if varList[var].split('_')[-1] == 'ref':
+                    camlLine = 'let ' + name_ + ' = ref ' + toto[2] + ' in '
+                else:
+                    camlLine = 'let ' + name_ + ' = ' + toto[2] + ' in '
             else:
                 args = toto[2].split(';')
                 curry = ' '.join(args)
