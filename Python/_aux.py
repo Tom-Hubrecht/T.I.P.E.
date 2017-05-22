@@ -59,7 +59,7 @@ def define__(sen):
                 args = []
             suffix = 'define__' + name + ',' + class__ + ',' + ';'.join(args)
             loc.append(name)
-            name = '_'.join([name, loc[-1]])
+            name = '_'.join([name, loc[-2]])
             #Fill the funList dictionary
             funList[name] = ['']
             for arg in args:
@@ -77,6 +77,7 @@ def define__(sen):
 #def returnType():
 #       for line in file_aux:
 #           if line[:6] == 'define' and line[10:13] == 'fun':
+
 
 
 
@@ -99,31 +100,29 @@ def print__(sen):
 def exprType(sen):
     operators = ['+','-','*','/']
     name = '_'.join([sen[0],loc[-1]])
-    try:
+    if name in varList:
         expType = varList[name]
-    except KeyError:
-        try:
-            int(sen[0])
-            expType = 'int'
-        except ValueError:
-            if sen[0][0] == '"':
-                expType = 'str'
-            else:
-                raise NameError("Variable not declared")
+    elif sen[0].isdigit():
+        expType = 'int'
+    elif sen[0][0] == '"':
+        expType = 'str'
+    elif sen[0] == 'True' or sen[0] == 'False':
+        expType = 'bool'
+    else:
+        raise NameError("Variable not declared")
     for word in sen[1:]:
             name = '_'.join([word,loc[-1]])
             if not (word in operators):
-                try:
+                if name in varList:
                     expType_temp = varList[name].split('_')[0]
-                except KeyError:
-                    try:
-                        int(word)
-                        expType_temp = 'int'
-                    except ValueError:
-                        if word[0] == '"':
-                            expType_temp = 'str'
-                        else:
-                            raise NameError("Variable not declared")
+                elif word.isdigit():
+                    expType_temp = 'int'
+                elif word[0] == '"':
+                    expType_temp = 'str'
+                elif word == 'True' or sen[0] == 'False':
+                    expType = 'bool'
+                else:
+                    raise NameError("Variable not declared")
                 if expType_temp != expType :
                     raise ValueError("Types not valid")
     return expType
@@ -172,6 +171,7 @@ def caml(name):
         file_caml = open(otp_path, 'xt')
 
     for line in source:
+        print(line)
         line_ = line.strip('\n')
         inst, sen = line_.split('__')
         toto = sen.split(',')
