@@ -51,7 +51,7 @@ def define__(sen):
                 raise SyntaxError("'of' expected")
             else:
                 args = []
-            suffix = 'define__' + name + ',' + class__ + ',' + ';'.join(args)
+            suffix = 'define__' + name + ',,' + class__ + ',,' + ';'.join(args)
             loc.append(name)
             name = '_'.join([name, loc[-2]])
             #Fill the funList dictionary
@@ -62,7 +62,7 @@ def define__(sen):
             class__ = "var"
             expr = sen[2:]
             type__(name, expr, loc[-1])
-            suffix = 'define__' + name + ',' + class__ + ',' + ' '.join(expr)
+            suffix = 'define__' + name + ',,' + class__ + ',,' + ' '.join(expr)
     else:
         raise SyntaxError("'as' expected after 'define'")
     file_aux.write(suffix + "\n")
@@ -79,11 +79,11 @@ def print__(sen):
         name = sen[0]
         varName = name + '_' + loc[-1]
         varType = varList[varName]
-        suffix = 'print__' + name + ',' + varType
+        suffix = 'print__' + name + ',,' + varType
     elif sen[0][0] == '"':
-        suffix = 'print__' + ' '.join(sen) + ',str'
+        suffix = 'print__' + ' '.join(sen) + ',,str'
     else:
-        suffix = 'print__' + ' '.join(sen) + ',' + exprType(sen)
+        suffix = 'print__' + ' '.join(sen) + ',,' + exprType(sen)
 
     file_aux.write(suffix + "\n")
 
@@ -175,10 +175,11 @@ def caml(name):
         file_caml = open(otp_path, 'xt')
 
     for line in source:
-        print(line)
+        print('##' + line, end='')
         line_ = line.strip('\n')
         inst, sen = line_.split('__')
-        toto = sen.split(',')
+        toto = sen.split(',,')
+        # Define
         if inst == 'define':
             name_ = toto[0]
             if toto[1] == 'var':
@@ -191,17 +192,19 @@ def caml(name):
                 args = toto[2].split(';')
                 curry = ' '.join(args)
                 camlLine = 'let ' + name_ + ' ' + curry + ' = '
+        # Print
         elif inst == 'print':
             type_ = toto[-1]
             if type_ == 'str':
                 camlLine = 'print_string(' + toto[0] + ');'
             elif type_ == 'int' or type_ == 'int_ref':
                 camlLine = 'print_int(' + toto[0] + ');'
-            else:
+            else:  # Should be useless
                 camlLine = line_
         else:
             camlLine = line_
 
+        print(camlLine)
         file_caml.write(camlLine + '\n')
 
     file_caml.close()
