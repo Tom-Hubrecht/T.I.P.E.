@@ -5,7 +5,7 @@ def Init():
 
     global file_aux
 
-    global funList  # Structure : {funName_funLoc : [funType, arg1_arg1Type, arg2_arg2_Type, ...]}
+    global funList  # Structure : {funName_funLoc : [funType, {arg : argType}]}
     global varList  # Structure : {varName_varLoc : varType}
     global loc
 
@@ -22,26 +22,20 @@ def Init():
 
 
 def readInput():
-    filename = input( "Entrez le nom du fichier :\n>" )
-    path = os.path.join(cwd , ".." , "Input" , "") + filename + ".ipt"
-    file = open(path , 'r')
-    return file,filename
+    filename = input("Entrez le nom du fichier :\n>")
+    path = os.path.join(cwd, "..", "Input", "") + filename + ".ipt"
+    file = open(path, 'r')
+    return file, filename
 
 
-def type__(var,expr,loc):
-    type_ = ""
-    name = '_'.join([var,loc])
-    if expr[0] == '"':  # Type string
-        type_ = 'string'
-    elif expr[0] == 'True' or expr[0] == 'False':
-        type_ = 'bool'
-    else:
-        type_ = 'int'
+def type__(var, expr, loc):
+    type_ = exprType(expr)
+    name = '_'.join([var, loc])
 
     if name not in varList:
         varList[name] = type_
     else:
-        raise NameError("Variable name is already in use")
+        raise NameError("Variable '" + var + "' is already in use")
 
 
 def define__(sen):
@@ -50,7 +44,7 @@ def define__(sen):
         if len(sen) > 3 and ' '.join([sen[2], sen[3]]) == "a function":
             class__ = "fun"
             if sen[4].lower() == "of":
-                args = list(' '.join(sen[5:]).split(" and "))  # Lists the arguments
+                args = list(' '.join(sen[5:]).split(" and "))  # List arguments
                 if not len(args):  # If no arguments are given
                     raise SyntaxError("Arguments expected")
             elif len(sen) > 4:  # If another word is after 'a function'
@@ -61,9 +55,9 @@ def define__(sen):
             loc.append(name)
             name = '_'.join([name, loc[-2]])
             #Fill the funList dictionary
-            funList[name] = ['']
+            funList[name] = ['', {}]
             for arg in args:
-                funList[name].append(arg)
+                funList[name][1][arg] = ''
         else:
             class__ = "var"
             expr = sen[2:]
@@ -77,9 +71,6 @@ def define__(sen):
 #def returnType():
 #       for line in file_aux:
 #           if line[:6] == 'define' and line[10:13] == 'fun':
-
-
-
 
 
 def print__(sen):
@@ -98,8 +89,8 @@ def print__(sen):
 
 
 def exprType(sen):
-    operators = ['+','-','*','/']
-    name = '_'.join([sen[0],loc[-1]])
+    operators = ['+', '-', '*', '/']
+    name = '_'.join([sen[0], loc[-1]])
     if name in varList:
         expType = varList[name]
     elif sen[0].isdigit():
@@ -109,10 +100,19 @@ def exprType(sen):
     elif sen[0] == 'True' or sen[0] == 'False':
         expType = 'bool'
     else:
-        raise NameError("Variable not declared")
+        raise NameError("Variable '" + sen[0] + "' not declared")
     for word in sen[1:]:
-            name = '_'.join([word,loc[-1]])
-            if not (word in operators):
+        for fun in funList:
+            if word in funList[fun][1]:
+                argType = expType
+                defType = funList[fun][1][word]
+                if not defType:
+                    funList[fun][1][word] = argType
+                elif defType != argType:
+                    types = defType + expType
+                    raise ValueError("Invalid types :" + types)
+            elif not (word in operators):
+                name = '_'.join([word, loc[-1]])
                 if name in varList:
                     expType_temp = varList[name].split('_')[0]
                 elif word.isdigit():
@@ -122,9 +122,11 @@ def exprType(sen):
                 elif word == 'True' or sen[0] == 'False':
                     expType = 'bool'
                 else:
-                    raise NameError("Variable not declared")
-                if expType_temp != expType :
-                    raise ValueError("Types not valid")
+                    raise NameError("Variable '" + word + "' not declared")
+
+                if expType_temp != expType:
+                    types = expType_temp + expType_temp
+                    raise ValueError("Invalid types :" + types)
     return expType
 
 
@@ -132,10 +134,12 @@ def exprType(sen):
 
 
 def change__(sen):
-    name = '_'.join([sen[0],loc[-1]])
+    name = '_'.join([sen[0], loc[-1]])
 
-    if varList[name]:
+    if name in varList:
         varList[name] += '_ref'
+    else:
+        raise NameError("Variable '" + sen[0] + "' not declared")
 
     suffix = sen[0] + ' := ' + ' '.join(sen[1:])
     file_aux.write('change__' + suffix + "\n")
@@ -163,7 +167,7 @@ def translate(line):
 
 def caml(name):
     source = open(name + '.temp', 'rt')
-    otp_path = os.path.join(cwd , ".." , "Output" , "") + name + '.ml'
+    otp_path = os.path.join(cwd, "..", "Output", "") + name + '.ml'
     try:
         file_caml = open(otp_path, 'xt')
     except:
@@ -198,8 +202,7 @@ def caml(name):
         else:
             camlLine = line_
 
-
-        file_caml.write(camlLine + '\n' )
+        file_caml.write(camlLine + '\n')
 
     file_caml.close()
     source.close()
@@ -207,27 +210,24 @@ def caml(name):
 
     print('Output ' + name + '.ml has been created in ../Output')
 
+
 def main():
     global file_aux
     Init()
     file_src, src_name = readInput()
     try:
-        file_aux = open(src_name + '.temp','xt')
+        file_aux = open(src_name + '.temp', 'xt')
     except:
         os.remove(os.path.join(cwd, src_name + '.temp'))
-        file_aux = open(src_name + '.temp','xt')
+        file_aux = open(src_name + '.temp', 'xt')
 
-    for line in file_src :
+    for line in file_src:
         translate(line)
-
-#    returnType()
 
     file_aux.close()
     file_src.close()
 
     caml(src_name)
-
-
 
 # Start the program
 main()
