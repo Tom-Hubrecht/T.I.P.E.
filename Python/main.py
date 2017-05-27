@@ -68,11 +68,6 @@ def define__(sen):
     file_aux.write(suffix + "\n")
 
 
-#def returnType():
-#       for line in file_aux:
-#           if line[:6] == 'define' and line[10:13] == 'fun':
-
-
 def print__(sen):
     # If only a variable is given
     if sen[0][0] == '"':
@@ -96,6 +91,7 @@ def exprType(sen):
         if not defType:
             funList[fun][1][sen[0]] = exprType(sen[1:])
             expType = funList[fun][1][sen[0]]
+        else: expType = defType
     elif sen[0].isdigit():
         expType = 'int'
     elif sen[0][0] == '"':
@@ -114,8 +110,8 @@ def exprType(sen):
                 if not defType:
                     funList[fun][1][word] = argType
                 elif defType != argType:
-                    types = defType + expType
-                    raise ValueError("Invalid types :" + types)
+                    types = defType + ',' + expType
+                    raise ValueError("Invalid types: " + types)
             elif not (word in operators):
                 name = '_'.join([word, loc[-1]])
                 if name in varList:
@@ -130,24 +126,46 @@ def exprType(sen):
                     raise NameError("Variable '" + word + "' not declared")
 
                 if expType_temp != expType:
-                    types = expType_temp + expType_temp
-                    raise ValueError("Invalid types :" + types)
+                    types = expType_temp + ',' + expType
+                    raise ValueError("Invalid types: " + types)
     return expType
 
 
-#def return__(sen):
-
+def return__(sen):
+    returnType = exprType(sen)
+    inFun = False
+    for i in range(0,len(loc),-1):
+        if not(loc[i] in ['global','while','for','if']):
+            fun = loc[i]
+            inFun = True
+            break
+    if inFun:
+        funList[fun][0] = returnType
+    file_aux.write('return__' + ' '.join(sen) + ',,' + returnType + '\n')
+    
 
 def change__(sen):
     name = '_'.join([sen[0], loc[-1]])
-
     if name in varList:
         varList[name] += '_ref'
     else:
         raise NameError("Variable '" + sen[0] + "' not declared")
-
-    suffix = sen[0] + ' := ' + ' '.join(sen[1:])
-    file_aux.write('change__' + suffix + "\n")
+    if sen[1] == 'to':
+        if sen[0] in sen[2:]:
+            l = sen[2:]
+            l.remove(sen[0])
+            if varList[name] == exprType(l) + '_ref':
+                suffix = sen[0] + ',,' + ' '.join(sen[2:])
+            else:
+                raise ValueError("Invalid types: " + varList[name] + ',' + exprType(l))
+        else:
+            if varList[name] == exprType(sen[2:]) + '_ref':
+                suffix = sen[0] + ',,' + ' '.join(sen[2:])
+            else:
+                raise ValueError("Invalid types: " + varList[name] + ',' + exprType(sen[2:]))
+        file_aux.write('change__' + suffix + "\n")
+    else:
+        raise SyntaxError("'to' expected after 'change'")        
 
 
 def end__(sen):
@@ -220,8 +238,10 @@ def caml(name):
             type_ = toto[-1]
             if type_ == 'str':
                 camlLine = 'print_string(' + toto[0] + ');'
-            elif type_ == 'int' or type_ == 'int_ref':
+            elif type_ == 'int':
                 camlLine = 'print_int(' + toto[0] + ');'
+            elif type_ == 'int_ref':
+                camlLine = 'print_int(!' + toto[0] + ');'
             else:  # Should be useless
                 camlLine = line_
         else:
