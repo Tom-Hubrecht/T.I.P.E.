@@ -75,12 +75,7 @@ def define__(sen):
 
 def print__(sen):
     # If only a variable is given
-    if len(sen) == 1:
-        name = sen[0]
-        varName = name + '_' + loc[-1]
-        varType = varList[varName]
-        suffix = 'print__' + name + ',,' + varType
-    elif sen[0][0] == '"':
+    if sen[0][0] == '"':
         suffix = 'print__' + ' '.join(sen) + ',,str'
     else:
         suffix = 'print__' + ' '.join(sen) + ',,' + exprType(sen)
@@ -91,14 +86,24 @@ def print__(sen):
 def exprType(sen):
     operators = ['+', '-', '*', '/']
     name = '_'.join([sen[0], loc[-1]])
+    argsList = funList['_'.join([loc[-1],loc[-2]])][1]
+    if len(loc)>1:
+        fun = '_'.join([loc[-1],loc[-2]])
     if name in varList:
         expType = varList[name]
+    elif sen[0] in funList[fun][1]:
+        defType = funList[fun][1][sen[0]]
+        if not defType:
+            funList[fun][1][sen[0]] = exprType(sen[1:])
+            expType = funList[fun][1][sen[0]]
     elif sen[0].isdigit():
         expType = 'int'
     elif sen[0][0] == '"':
         expType = 'str'
     elif sen[0] == 'True' or sen[0] == 'False':
         expType = 'bool'
+    elif sen[0] in operators:
+        expType = exprType(sen[1:])
     else:
         raise NameError("Variable '" + sen[0] + "' not declared")
     for word in sen[1:]:
@@ -145,6 +150,20 @@ def change__(sen):
     file_aux.write('change__' + suffix + "\n")
 
 
+def end__(sen):
+    global loc
+    if len(sen)>1:
+        raise SyntaxError('Only one argument expected after "end of"')
+    elif sen[0] != loc[-1]:
+        if sen[0] in loc:
+            raise SyntaxError(', '.join(loc[loc.index(sen[0])+1:]) + " need to be closed before " + sen[0])
+        else:
+            raise NameError(sen[0] + " doesn't exist so it couldn't be closed")
+    else:
+        loc = loc[:-1]
+        file_aux.write('end__' + sen[0] + "\n")
+
+
 def translate(line):
     line_ = line.strip('\n')
     words = line_.split(' ')
@@ -161,6 +180,9 @@ def translate(line):
                 return__(sen)
             elif start == "change":
                 change__(sen)
+            elif ' '.join([start,sen[0]]) == 'end of':
+                sen = sen[1:]
+                end__(sen)
             else:
                 file_aux.write('#__' + line_ + "\n")
 
@@ -192,6 +214,7 @@ def caml(name):
                 args = toto[2].split(';')
                 curry = ' '.join(args)
                 camlLine = 'let ' + name_ + ' ' + curry + ' = '
+                loc.append(name_)
         # Print
         elif inst == 'print':
             type_ = toto[-1]
@@ -203,7 +226,17 @@ def caml(name):
                 camlLine = line_
         else:
             camlLine = line_
-
+        # End of
+        if inst == 'end':
+            name = toto[0]
+            if name in ['for','while']:
+                camlLine = 'done;'
+            else:
+                camlLine = ';'
+            if loc[-2] == 'global':
+                camlLine += ';'
+            
+        
         print(camlLine)
         file_caml.write(camlLine + '\n')
 
@@ -211,7 +244,7 @@ def caml(name):
     source.close()
     os.remove(name + '.temp')
 
-    print('Output ' + name + '.ml has been created in ../Output')
+    print('\nOutput ' + name + '.ml has been created in ../Output')
 
 
 def main():
