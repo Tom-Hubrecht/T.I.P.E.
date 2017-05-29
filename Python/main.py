@@ -134,15 +134,15 @@ def exprType(sen):
 def return__(sen):
     returnType = exprType(sen)
     inFun = False
-    for i in range(0,len(loc),-1):
-        if not(loc[i] in ['global','while','for','if']):
-            fun = loc[i]
+    for i in range(len(loc)):
+        if not(loc[len(loc)-i-1] in ['global','while','for','if']):
+            fun = loc[len(loc)-i-1] + '_' + loc[len(loc)-i-2]
             inFun = True
             break
     if inFun:
         funList[fun][0] = returnType
     file_aux.write('return__' + ' '.join(sen) + ',,' + returnType + '\n')
-    
+
 
 def change__(sen):
     name = '_'.join([sen[0], loc[-1]])
@@ -165,7 +165,7 @@ def change__(sen):
                 raise ValueError("Invalid types: " + varList[name] + ',' + exprType(sen[2:]))
         file_aux.write('change__' + suffix + "\n")
     else:
-        raise SyntaxError("'to' expected after 'change'")        
+        raise SyntaxError("'to' expected after 'change'")
 
 
 def end__(sen):
@@ -255,8 +255,8 @@ def caml(name):
                 camlLine = ';'
             if loc[-2] == 'global':
                 camlLine += ';'
-            
-        
+
+
         print(camlLine)
         file_caml.write(camlLine + '\n')
 
