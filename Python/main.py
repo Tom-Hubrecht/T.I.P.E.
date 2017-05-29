@@ -248,8 +248,8 @@ def caml(name):
             camlLine = line_
         # End of
         if inst == 'end':
-            name = toto[0]
-            if name in ['for','while']:
+            objName = toto[0]
+            if objName in ['for','while']:
                 camlLine = 'done;'
             else:
                 camlLine = ';'
