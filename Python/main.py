@@ -270,6 +270,9 @@ def caml(name):
         # Return
         if inst == 'return':
             camlLine = toto[0]
+        # Change
+        if inst == 'change':
+            camlLine = toto[0] + ' := ' + toto[1] + ';'
 
         print(camlLine)
         file_caml.write(camlLine + '\n')
