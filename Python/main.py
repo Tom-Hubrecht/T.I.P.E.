@@ -68,24 +68,36 @@ def define__(sen):
     file_aux.write(suffix + "\n")
 
 
+def adapt(sen):
+    r = sen.copy()
+    for i in range(len(r)):
+        if (exprType(r) == 'str') and (r[i] == '+'):
+            r[i] = '^'
+    for i in range(len(r)):
+        name = '_'.join([r[i],loc[-1]])
+        if (name in varList) and (len(varList[name].split('_')) > 0) :
+            r[i] = '!' + r[i]
+    return r
+
+
 def print__(sen):
     # If only a variable is given
     if sen[0][0] == '"':
         suffix = 'print__' + ' '.join(sen) + ',,str'
     else:
-        suffix = 'print__' + ' '.join(sen) + ',,' + exprType(sen)
+        suffix = 'print__' + ' '.join(adapt(sen)) + ',,' + exprType(sen)
 
     file_aux.write(suffix + "\n")
 
 
 def exprType(sen):
-    operators = ['+', '-', '*', '/']
+    operators = ['+', '-', '*', '/','^']
     name = '_'.join([sen[0], loc[-1]])
     argsList = funList['_'.join([loc[-1],loc[-2]])][1]
     if len(loc)>1:
         fun = '_'.join([loc[-1],loc[-2]])
     if name in varList:
-        expType = varList[name]
+        expType = varList[name].split('_')[0]
     elif sen[0] in funList[fun][1]:
         defType = funList[fun][1][sen[0]]
         if not defType:
@@ -141,7 +153,7 @@ def return__(sen):
             break
     if inFun:
         funList[fun][0] = returnType
-    file_aux.write('return__' + ' '.join(sen) + ',,' + returnType + '\n')
+    file_aux.write('return__' + ' '.join(adapt(sen)) + ',,' + returnType + '\n')
 
 
 def change__(sen):
@@ -225,9 +237,9 @@ def caml(name):
             if toto[1] == 'var':
                 var = name_ + '_' + loc[-1]
                 if varList[var].split('_')[-1] == 'ref':
-                    camlLine = 'let ' + name_ + ' = ref ' + toto[2] + ' in '
+                    camlLine = 'let ' + name_ + ' = ref ' + '(' + toto[2] + ') in '
                 else:
-                    camlLine = 'let ' + name_ + ' = ' + toto[2] + ' in '
+                    camlLine = 'let ' + name_ + ' = ' + '(' + toto[2] + ') in '
             else:
                 args = toto[2].split(';')
                 curry = ' '.join(args)
@@ -255,7 +267,9 @@ def caml(name):
                 camlLine = ';'
             if loc[-2] == 'global':
                 camlLine += ';'
-
+        # Return
+        if inst == 'return':
+            camlLine = toto[0]
 
         print(camlLine)
         file_caml.write(camlLine + '\n')
