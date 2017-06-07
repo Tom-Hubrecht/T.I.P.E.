@@ -93,9 +93,20 @@ def print__(sen):
 def exprType(sen):
     operators = ['+', '-', '*', '/','^']
     name = '_'.join([sen[0], loc[-1]])
-    argsList = funList['_'.join([loc[-1],loc[-2]])][1]
-    if len(loc)>1:
-        fun = '_'.join([loc[-1],loc[-2]])
+    # Do not look at {for, while, if}
+    i = len(loc) - 1
+    while loc[i].split('_')[0] in ['for', 'while', 'if']:
+        i -= 1 
+    funName = loc[i]
+    funLoc = loc[i-1]
+    fun = funName + '_' + funLoc
+    argsList = funList[fun][1]
+    
+    iterators = []
+    for places in loc:
+        if places.split('_')[0] == 'for':
+            iterators.append(places.split('_')[1])
+    
     if name in varList:
         expType = varList[name].split('_')[0]
     elif sen[0] in funList[fun][1]:
@@ -104,7 +115,7 @@ def exprType(sen):
             funList[fun][1][sen[0]] = exprType(sen[1:])
             expType = funList[fun][1][sen[0]]
         else: expType = defType
-    elif sen[0].isdigit():
+    elif sen[0].isdigit() or sen[0] in iterators:
         expType = 'int'
     elif sen[0][0] == '"':
         expType = 'str'
@@ -123,6 +134,11 @@ def exprType(sen):
                     funList[fun][1][word] = argType
                 elif defType != argType:
                     types = defType + ',' + expType
+                    raise ValueError("Invalid types: " + types)
+            elif word in iterators:
+                expType_temp = 'int'
+                if expType != 'int':
+                    types = 'int' + ',' + expType
                     raise ValueError("Invalid types: " + types)
             elif not (word in operators):
                 name = '_'.join([word, loc[-1]])
@@ -183,8 +199,8 @@ def change__(sen):
 def end__(sen):
     global loc
     if len(sen)>1:
-        raise SyntaxError('Only one argument expected after "end of"')
-    elif sen[0] != loc[-1]:
+        raise SyntaxError('Only one argument expected after "end"')
+    elif sen[0] != loc[-1].split('_')[0]:
         if sen[0] in loc:
             raise SyntaxError(', '.join(loc[loc.index(sen[0])+1:]) + " need to be closed before " + sen[0])
         else:
@@ -193,6 +209,16 @@ def end__(sen):
         loc = loc[:-1]
         file_aux.write('end__' + sen[0] + "\n")
 
+
+def for__(sen):
+    name = sen [0]
+    if len(sen) < 5 or (sen[1], sen[3]) != ('from', 'to'):
+        raise SyntaxError('Incorrect for, need name from val to val')
+    else:
+        loc.append('for_' + sen[0])
+        suffix = sen[0] + ',,' + sen[2] + ',,' + sen[4]
+        file_aux.write('for__' + suffix + "\n")
+    
 
 def translate(line):
     line_ = line.strip('\n')
@@ -210,14 +236,16 @@ def translate(line):
                 return__(sen)
             elif start == "change":
                 change__(sen)
-            elif ' '.join([start,sen[0]]) == 'end of':
-                sen = sen[1:]
+            elif start == "end":
                 end__(sen)
+            elif start == "for":
+                for__(sen)
             else:
                 file_aux.write('#__' + line_ + "\n")
 
 
 def caml(name):
+    global loc
     source = open(name + '.temp', 'rt')
     otp_path = os.path.join(cwd, "..", "Output", "") + name + '.ml'
     try:
@@ -227,7 +255,7 @@ def caml(name):
         file_caml = open(otp_path, 'xt')
 
     for line in source:
-        print('##' + line, end='')
+#        print('##' + line, end='')
         line_ = line.strip('\n')
         inst, sen = line_.split('__')
         toto = sen.split(',,')
@@ -267,13 +295,19 @@ def caml(name):
                 camlLine = ';'
             if loc[-2] == 'global':
                 camlLine += ';'
+            if objName in ['for','while']:
+                loc = loc[:-1]
         # Return
         if inst == 'return':
             camlLine = toto[0]
         # Change
         if inst == 'change':
             camlLine = toto[0] + ' := ' + toto[1] + ';'
-
+        # For
+        if inst == 'for':
+            loc.append('for')
+            camlLine = 'for ' + toto[0] + ' = ' + toto[1] + ' to ' + toto[2] + ' do'
+            
         print(camlLine)
         file_caml.write(camlLine + '\n')
 

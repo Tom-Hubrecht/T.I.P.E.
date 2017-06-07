@@ -2,7 +2,7 @@ define f as a function of x and y
 define p as 3 + x
 define cste as 3
 for i from 10 to 15
-print 2 + y
+print 2 + i
 end for
 print p
 print "Hello, world"
