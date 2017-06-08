@@ -4,7 +4,9 @@ define cste as 3
 for i from 10 to 15
 print 2 + i
 end for
+if p = 2
 print p
+end if
 print "Hello, world"
 change p to 15
 print p

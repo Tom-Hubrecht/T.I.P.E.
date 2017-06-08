@@ -28,6 +28,96 @@ def readInput():
     return file, filename
 
 
+def exprType(sen):
+    operators = ['+', '-', '*', '/','^']
+    comparators = ['<', '>', '=<', '>=', '=', '!=']
+    iterators = []
+    for places in loc:
+        if places.split('_')[0] == 'for':
+            iterators.append(places.split('_')[1])
+
+    # Do not look at {for, while, if}
+    i = len(loc) - 1
+    while loc[i].split('_')[0] in ['for', 'while', 'if']:
+        i -= 1 
+    funName = loc[i]
+    funLoc = loc[i-1]
+    fun = funName + '_' + funLoc
+    name = '_'.join([sen[0], funName])    
+    argsList = funList[fun][1]
+        
+    if name in varList:
+        expType = varList[name].split('_')[0]
+    elif sen[0] in funList[fun][1]:
+        defType = funList[fun][1][sen[0]]
+        if not defType:
+            funList[fun][1][sen[0]] = exprType(sen[1:])
+            expType = funList[fun][1][sen[0]]
+        else: expType = defType
+    elif sen[0].isdigit() or sen[0] in iterators:
+        expType = 'int'
+    elif sen[0][0] == '"':
+        expType = 'str'
+    elif sen[0] == 'True' or sen[0] == 'False':
+        expType = 'bool'
+    elif sen[0] in operators:
+        expType = exprType(sen[1:])
+    else:
+        raise NameError("Variable '" + sen[0] + "' not declared")
+    for word in sen:
+        if word in comparators:
+            expType = 'comp'
+    if expType == 'comp':
+        return 'bool'
+    else:
+        for word in sen[1:]:
+            for fun in funList:
+                if word in funList[fun][1]:
+                    argType = expType
+                    defType = funList[fun][1][word]
+                    if not defType:
+                        funList[fun][1][word] = argType
+                    elif defType != argType:
+                        types = defType + ',' + expType
+                        raise ValueError("Invalid types: " + types)
+                elif word in iterators:
+                    expType_temp = 'int'
+                    if expType != 'int':
+                        types = 'int' + ',' + expType
+                        raise ValueError("Invalid types: " + types)
+                elif not (word in operators):
+                    name = '_'.join([word, loc[-1]])
+                    if name in varList:
+                        expType_temp = varList[name].split('_')[0]
+                    elif word.isdigit():
+                        expType_temp = 'int'
+                    elif word[0] == '"':
+                        expType_temp = 'str'
+                    elif word == 'True' or sen[0] == 'False':
+                        expType = 'bool'
+                    else:
+                        raise NameError("Variable '" + word + "' not declared")
+
+                    if expType_temp != expType:
+                        types = expType_temp + ',' + expType
+                        raise ValueError("Invalid types: " + types)
+    return expType
+
+def adapt(sen):
+    r = sen.copy()
+    n = len(loc) - 1
+    while loc[n].split('_')[0] in ['for', 'while', 'if']:
+        n -= 1 
+    for i in range(len(r)):
+        if (exprType(r) == 'str') and (r[i] == '+'):
+            r[i] = '^'
+    for i in range(len(r)):
+        name = '_'.join([r[i],loc[n]])
+        if (name in varList) and (len(varList[name].split('_')) > 0) :
+            r[i] = '!' + r[i]
+    return r
+
+
 def type__(var, expr, loc):
     type_ = exprType(expr)
     name = '_'.join([var, loc])
@@ -68,95 +158,14 @@ def define__(sen):
     file_aux.write(suffix + "\n")
 
 
-def adapt(sen):
-    r = sen.copy()
-    for i in range(len(r)):
-        if (exprType(r) == 'str') and (r[i] == '+'):
-            r[i] = '^'
-    for i in range(len(r)):
-        name = '_'.join([r[i],loc[-1]])
-        if (name in varList) and (len(varList[name].split('_')) > 0) :
-            r[i] = '!' + r[i]
-    return r
-
-
 def print__(sen):
     # If only a variable is given
     if sen[0][0] == '"':
         suffix = 'print__' + ' '.join(sen) + ',,str'
     else:
         suffix = 'print__' + ' '.join(adapt(sen)) + ',,' + exprType(sen)
-
     file_aux.write(suffix + "\n")
 
-
-def exprType(sen):
-    operators = ['+', '-', '*', '/','^']
-    name = '_'.join([sen[0], loc[-1]])
-    # Do not look at {for, while, if}
-    i = len(loc) - 1
-    while loc[i].split('_')[0] in ['for', 'while', 'if']:
-        i -= 1 
-    funName = loc[i]
-    funLoc = loc[i-1]
-    fun = funName + '_' + funLoc
-    argsList = funList[fun][1]
-    
-    iterators = []
-    for places in loc:
-        if places.split('_')[0] == 'for':
-            iterators.append(places.split('_')[1])
-    
-    if name in varList:
-        expType = varList[name].split('_')[0]
-    elif sen[0] in funList[fun][1]:
-        defType = funList[fun][1][sen[0]]
-        if not defType:
-            funList[fun][1][sen[0]] = exprType(sen[1:])
-            expType = funList[fun][1][sen[0]]
-        else: expType = defType
-    elif sen[0].isdigit() or sen[0] in iterators:
-        expType = 'int'
-    elif sen[0][0] == '"':
-        expType = 'str'
-    elif sen[0] == 'True' or sen[0] == 'False':
-        expType = 'bool'
-    elif sen[0] in operators:
-        expType = exprType(sen[1:])
-    else:
-        raise NameError("Variable '" + sen[0] + "' not declared")
-    for word in sen[1:]:
-        for fun in funList:
-            if word in funList[fun][1]:
-                argType = expType
-                defType = funList[fun][1][word]
-                if not defType:
-                    funList[fun][1][word] = argType
-                elif defType != argType:
-                    types = defType + ',' + expType
-                    raise ValueError("Invalid types: " + types)
-            elif word in iterators:
-                expType_temp = 'int'
-                if expType != 'int':
-                    types = 'int' + ',' + expType
-                    raise ValueError("Invalid types: " + types)
-            elif not (word in operators):
-                name = '_'.join([word, loc[-1]])
-                if name in varList:
-                    expType_temp = varList[name].split('_')[0]
-                elif word.isdigit():
-                    expType_temp = 'int'
-                elif word[0] == '"':
-                    expType_temp = 'str'
-                elif word == 'True' or sen[0] == 'False':
-                    expType = 'bool'
-                else:
-                    raise NameError("Variable '" + word + "' not declared")
-
-                if expType_temp != expType:
-                    types = expType_temp + ',' + expType
-                    raise ValueError("Invalid types: " + types)
-    return expType
 
 
 def return__(sen):
@@ -214,11 +223,21 @@ def for__(sen):
     name = sen [0]
     if len(sen) < 5 or (sen[1], sen[3]) != ('from', 'to'):
         raise SyntaxError('Incorrect for, need name from val to val')
+    if exprType(sen[2]) != 'int' or exprType(sen[4]) != 'int':
+        raise SyntaxError('Integers must be used in start and end values')
     else:
         loc.append('for_' + sen[0])
         suffix = sen[0] + ',,' + sen[2] + ',,' + sen[4]
         file_aux.write('for__' + suffix + "\n")
     
+
+def if__(sen):
+    if exprType(sen) != 'bool':
+        raise SyntaxError('Cannot use non boolean expression in if')
+    else:
+        loc.append('if')
+        suffix = ' '.join(adapt(sen))
+        file_aux.write('if__' + suffix + "\n")
 
 def translate(line):
     line_ = line.strip('\n')
@@ -240,6 +259,8 @@ def translate(line):
                 end__(sen)
             elif start == "for":
                 for__(sen)
+            elif start == "if":
+                if__(sen)
             else:
                 file_aux.write('#__' + line_ + "\n")
 
@@ -264,10 +285,12 @@ def caml(name):
             name_ = toto[0]
             if toto[1] == 'var':
                 var = name_ + '_' + loc[-1]
+                if not toto[2].isdigit():
+                    toto[2] = '(' + toto[2] + ')'
                 if varList[var].split('_')[-1] == 'ref':
-                    camlLine = 'let ' + name_ + ' = ref ' + '(' + toto[2] + ') in '
+                    camlLine = 'let ' + name_ + ' = ref ' + '' + toto[2] + ' in '
                 else:
-                    camlLine = 'let ' + name_ + ' = ' + '(' + toto[2] + ') in '
+                    camlLine = 'let ' + name_ + ' = ' + '' + toto[2] + ' in '
             else:
                 args = toto[2].split(';')
                 curry = ' '.join(args)
@@ -291,11 +314,13 @@ def caml(name):
             objName = toto[0]
             if objName in ['for','while']:
                 camlLine = 'done;'
+            elif objName == 'if':
+                camlLine = 'end'
             else:
                 camlLine = ';'
             if loc[-2] == 'global':
                 camlLine += ';'
-            if objName in ['for','while']:
+            if objName in ['for', 'while', 'if']:
                 loc = loc[:-1]
         # Return
         if inst == 'return':
@@ -306,8 +331,19 @@ def caml(name):
         # For
         if inst == 'for':
             loc.append('for')
+            if not toto[1].isdigit():
+                toto[1] = '(' + toto[1] + ')'
+            if not toto[2].isdigit():
+                toto[2] = '(' + toto[2] + ')'
             camlLine = 'for ' + toto[0] + ' = ' + toto[1] + ' to ' + toto[2] + ' do'
-            
+        # If
+        if inst == 'if':
+            loc.append('if')
+            camlLine = 'if ' + toto[0] + ' then' + '\nbegin'
+        # Else
+        if inst == 'else':
+            camlLine = 'end\nelse\nbegin'
+
         print(camlLine)
         file_caml.write(camlLine + '\n')
 
