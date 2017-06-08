@@ -182,9 +182,14 @@ def return__(sen):
 
 
 def change__(sen):
-    name = '_'.join([sen[0], loc[-1]])
+    n = len(loc) - 1
+    while loc[n].split('_')[0] in ['for', 'while', 'if']:
+        n -= 1 
+    funName = loc[n]
+    name = '_'.join([sen[0], funName])
     if name in varList:
-        varList[name] += '_ref'
+        if varList[name].split('_')[-1] != 'ref':
+            varList[name] += '_ref'
     else:
         raise NameError("Variable '" + sen[0] + "' not declared")
     if sen[1] == 'to':
@@ -192,12 +197,12 @@ def change__(sen):
             l = sen[2:]
             l.remove(sen[0])
             if varList[name] == exprType(l) + '_ref':
-                suffix = sen[0] + ',,' + ' '.join(sen[2:])
+                suffix = sen[0] + ',,' + ' '.join(adapt(sen[2:]))
             else:
                 raise ValueError("Invalid types: " + varList[name] + ',' + exprType(l))
         else:
             if varList[name] == exprType(sen[2:]) + '_ref':
-                suffix = sen[0] + ',,' + ' '.join(sen[2:])
+                suffix = sen[0] + ',,' + ' '.join(adapt(sen[2:]))
             else:
                 raise ValueError("Invalid types: " + varList[name] + ',' + exprType(sen[2:]))
         file_aux.write('change__' + suffix + "\n")
@@ -239,6 +244,25 @@ def if__(sen):
         suffix = ' '.join(adapt(sen))
         file_aux.write('if__' + suffix + "\n")
 
+
+def else__(sen):
+    if loc[-1] != 'if':
+        raise SyntaxError('Need to close ' + loc[-1].split('_'[0]) + ' before elseing')
+    else:
+        suffix = ' '.join(adapt(sen))
+        file_aux.write('else__' + suffix + "\n")
+
+
+def while__(sen):
+    if exprType(sen) != 'bool':
+        raise SyntaxError('Cannot use non boolean expression in while')
+    else:
+        loc.append('while')
+        suffix = ' '.join(adapt(sen))
+        file_aux.write('while__' + suffix + "\n")
+
+
+
 def translate(line):
     line_ = line.strip('\n')
     words = line_.split(' ')
@@ -261,6 +285,10 @@ def translate(line):
                 for__(sen)
             elif start == "if":
                 if__(sen)
+            elif start == "else":
+                else__(sen)
+            elif start == "while":
+                while__(sen)
             else:
                 file_aux.write('#__' + line_ + "\n")
 
@@ -307,15 +335,14 @@ def caml(name):
                 camlLine = 'print_int(!' + toto[0] + ');'
             else:  # Should be useless
                 camlLine = line_
-        else:
-            camlLine = line_
+            camlLine += '\nprint_newline();'
         # End of
-        if inst == 'end':
+        elif inst == 'end':
             objName = toto[0]
             if objName in ['for','while']:
                 camlLine = 'done;'
             elif objName == 'if':
-                camlLine = 'end'
+                camlLine = 'end;'
             else:
                 camlLine = ';'
             if loc[-2] == 'global':
@@ -323,13 +350,13 @@ def caml(name):
             if objName in ['for', 'while', 'if']:
                 loc = loc[:-1]
         # Return
-        if inst == 'return':
+        elif inst == 'return':
             camlLine = toto[0]
         # Change
-        if inst == 'change':
+        elif inst == 'change':
             camlLine = toto[0] + ' := ' + toto[1] + ';'
         # For
-        if inst == 'for':
+        elif inst == 'for':
             loc.append('for')
             if not toto[1].isdigit():
                 toto[1] = '(' + toto[1] + ')'
@@ -337,13 +364,19 @@ def caml(name):
                 toto[2] = '(' + toto[2] + ')'
             camlLine = 'for ' + toto[0] + ' = ' + toto[1] + ' to ' + toto[2] + ' do'
         # If
-        if inst == 'if':
+        elif inst == 'if':
             loc.append('if')
             camlLine = 'if ' + toto[0] + ' then' + '\nbegin'
         # Else
-        if inst == 'else':
+        elif inst == 'else':
             camlLine = 'end\nelse\nbegin'
+        # While
+        elif inst == 'while':
+            loc.append('while')
+            camlLine = 'while ' + toto[0] + ' do'
 
+        else:
+            camlLine = line_
         print(camlLine)
         file_caml.write(camlLine + '\n')
 

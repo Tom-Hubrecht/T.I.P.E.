@@ -4,8 +4,14 @@ define cste as 3
 for i from 10 to 15
 print 2 + i
 end for
+while p != 9
+change p to p + 1
+print p
+end while
 if p = 2
 print p
+else
+print "Toto"
 end if
 print "Hello, world"
 change p to 15
