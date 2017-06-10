@@ -1,0 +1,10 @@
+define__fibo,,fun,,n
+define__f_cur,,var,,0
+define__f_next,,var,,1
+define__res,,var,,1
+if__n = 0
+change__res,,0
+else__
+if__n = 1
+change__res,,1
+else__

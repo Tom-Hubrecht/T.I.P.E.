@@ -1,0 +1,19 @@
+define fibo as a function of n
+define f_cur as 0
+define f_next as 1
+define res as 1
+if n = 0
+change res to 0
+else
+if n = 1
+change res to 1
+else
+for i from 2 to n
+change f_cur to f_next
+change f_next to res
+change res to f_next + f_cur
+end for
+end if
+return res
+end fibo
+

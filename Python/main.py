@@ -40,12 +40,13 @@ def exprType(sen):
     i = len(loc) - 1
     while loc[i].split('_')[0] in ['for', 'while', 'if']:
         i -= 1 
+
     funName = loc[i]
     funLoc = loc[i-1]
     fun = funName + '_' + funLoc
     name = '_'.join([sen[0], funName])    
     argsList = funList[fun][1]
-        
+
     if name in varList:
         expType = varList[name].split('_')[0]
     elif sen[0] in funList[fun][1]:
@@ -53,7 +54,8 @@ def exprType(sen):
         if not defType:
             funList[fun][1][sen[0]] = exprType(sen[1:])
             expType = funList[fun][1][sen[0]]
-        else: expType = defType
+        else:
+            expType = defType
     elif sen[0].isdigit() or sen[0] in iterators:
         expType = 'int'
     elif sen[0][0] == '"':
@@ -61,6 +63,8 @@ def exprType(sen):
     elif sen[0] == 'True' or sen[0] == 'False':
         expType = 'bool'
     elif sen[0] in operators:
+        expType = exprType(sen[1:])
+    elif sen[0] in comparators:
         expType = exprType(sen[1:])
     else:
         raise NameError("Variable '" + sen[0] + "' not declared")
@@ -118,6 +122,10 @@ def adapt(sen):
     return r
 
 
+def tabs(sen,inst):
+    return t
+
+
 def type__(var, expr, loc):
     type_ = exprType(expr)
     name = '_'.join([var, loc])
@@ -144,7 +152,7 @@ def define__(sen):
             suffix = 'define__' + name + ',,' + class__ + ',,' + ';'.join(args)
             loc.append(name)
             name = '_'.join([name, loc[-2]])
-            #Fill the funList dictionary
+            # Fill the funList dictionary
             funList[name] = ['', {}]
             for arg in args:
                 funList[name][1][arg] = ''
@@ -161,10 +169,10 @@ def define__(sen):
 def print__(sen):
     # If only a variable is given
     if sen[0][0] == '"':
-        suffix = 'print__' + ' '.join(sen) + ',,str'
+        suffix = ' '.join(sen) + ',,str'
     else:
-        suffix = 'print__' + ' '.join(adapt(sen)) + ',,' + exprType(sen)
-    file_aux.write(suffix + "\n")
+        suffix = ' '.join(adapt(sen)) + ',,' + exprType(sen)
+    file_aux.write('print__' + suffix + '\n')
 
 
 
@@ -178,7 +186,8 @@ def return__(sen):
             break
     if inFun:
         funList[fun][0] = returnType
-    file_aux.write('return__' + ' '.join(adapt(sen)) + ',,' + returnType + '\n')
+    suffix = ' '.join(adapt(sen)) + ',,' + returnType
+    file_aux.write('return__' + suffix + '\n')
 
 
 def change__(sen):
@@ -226,9 +235,11 @@ def end__(sen):
 
 def for__(sen):
     name = sen [0]
+    print('for--' + str(sen))
     if len(sen) < 5 or (sen[1], sen[3]) != ('from', 'to'):
         raise SyntaxError('Incorrect for, need name from val to val')
     if exprType(sen[2]) != 'int' or exprType(sen[4]) != 'int':
+        print(exprType(sen[4]) )
         raise SyntaxError('Integers must be used in start and end values')
     else:
         loc.append('for_' + sen[0])
@@ -237,6 +248,7 @@ def for__(sen):
     
 
 def if__(sen):
+#    print(sen)
     if exprType(sen) != 'bool':
         raise SyntaxError('Cannot use non boolean expression in if')
     else:
@@ -262,35 +274,32 @@ def while__(sen):
         file_aux.write('while__' + suffix + "\n")
 
 
-
 def translate(line):
     line_ = line.strip('\n')
     words = line_.split(' ')
-    for i in range(len(words)):
-        if i == 0:
-            start = words[i].lower()
-            sen = words[1:]
-            # print(start, ' ',sen)
-            if start == "define":
-                define__(sen)
-            elif start == "print":
-                print__(sen)
-            elif start == "return":
-                return__(sen)
-            elif start == "change":
-                change__(sen)
-            elif start == "end":
-                end__(sen)
-            elif start == "for":
-                for__(sen)
-            elif start == "if":
-                if__(sen)
-            elif start == "else":
-                else__(sen)
-            elif start == "while":
-                while__(sen)
-            else:
-                file_aux.write('#__' + line_ + "\n")
+    start = words[0].lower()
+    sen = words[1:]
+    print(sen)
+    if start == "define":
+        define__(sen)
+    elif start == "print":
+        print__(sen)
+    elif start == "return":
+        return__(sen)
+    elif start == "change":
+        change__(sen)
+    elif start == "end":
+        end__(sen)
+    elif start == "for":
+        for__(sen)
+    elif start == "if":
+        if__(sen)
+    elif start == "else":
+        else__(sen)
+    elif start == "while":
+        while__(sen)
+    else:
+        file_aux.write('#__' + line_ + "\n")
 
 
 def caml(name):
@@ -304,80 +313,78 @@ def caml(name):
         file_caml = open(otp_path, 'xt')
 
     for line in source:
-#        print('##' + line, end='')
+        t = len(loc)
         line_ = line.strip('\n')
         inst, sen = line_.split('__')
-        toto = sen.split(',,')
+        args = sen.split(',,')
         # Define
         if inst == 'define':
-            name_ = toto[0]
-            if toto[1] == 'var':
+            name_ = args[0]
+            if args[1] == 'var':
                 var = name_ + '_' + loc[-1]
-                if not toto[2].isdigit():
-                    toto[2] = '(' + toto[2] + ')'
+                if not args[2].isdigit():
+                    args[2] = '(' + args[2] + ')'
                 if varList[var].split('_')[-1] == 'ref':
-                    camlLine = 'let ' + name_ + ' = ref ' + '' + toto[2] + ' in '
+                    camlLine = 'let ' + name_ + ' = ref ' + '' + args[2] + ' in '
                 else:
-                    camlLine = 'let ' + name_ + ' = ' + '' + toto[2] + ' in '
+                    camlLine = 'let ' + name_ + ' = ' + '' + args[2] + ' in '
             else:
-                args = toto[2].split(';')
+                args = args[2].split(';')
                 curry = ' '.join(args)
                 camlLine = 'let ' + name_ + ' ' + curry + ' = '
                 loc.append(name_)
         # Print
         elif inst == 'print':
-            type_ = toto[-1]
+            type_ = args[-1]
             if type_ == 'str':
-                camlLine = 'print_string(' + toto[0] + ');'
+                camlLine = 'print_string(' + args[0] + ');'
             elif type_ == 'int':
-                camlLine = 'print_int(' + toto[0] + ');'
-            elif type_ == 'int_ref':
-                camlLine = 'print_int(!' + toto[0] + ');'
-            else:  # Should be useless
-                camlLine = line_
+                camlLine = 'print_int(' + args[0] + ');'
+            elif type_ == 'float':
+                camlLine = 'print_float(' + args[0] +');'
             camlLine += '\nprint_newline();'
         # End of
         elif inst == 'end':
-            objName = toto[0]
+            print(loc)
+            objName = args[0]
             if objName in ['for','while']:
                 camlLine = 'done;'
             elif objName == 'if':
                 camlLine = 'end;'
             else:
                 camlLine = ';'
-            if loc[-2] == 'global':
+            loc = loc[:-1]
+            print('#  ' + str(loc))
+            if loc == ['global']:
                 camlLine += ';'
-            if objName in ['for', 'while', 'if']:
-                loc = loc[:-1]
         # Return
         elif inst == 'return':
-            camlLine = toto[0]
+            camlLine = args[0]
         # Change
         elif inst == 'change':
-            camlLine = toto[0] + ' := ' + toto[1] + ';'
+            camlLine = args[0] + ' := ' + args[1] + ';'
         # For
         elif inst == 'for':
             loc.append('for')
-            if not toto[1].isdigit():
-                toto[1] = '(' + toto[1] + ')'
-            if not toto[2].isdigit():
-                toto[2] = '(' + toto[2] + ')'
-            camlLine = 'for ' + toto[0] + ' = ' + toto[1] + ' to ' + toto[2] + ' do'
+            if not args[1].isdigit():
+                args[1] = '(' + args[1] + ')'
+            if not args[2].isdigit():
+                args[2] = '(' + args[2] + ')'
+            camlLine = 'for ' + args[0] + ' = ' + args[1] + ' to ' + args[2] + ' do'
         # If
         elif inst == 'if':
             loc.append('if')
-            camlLine = 'if ' + toto[0] + ' then' + '\nbegin'
+            camlLine = 'if ' + args[0] + ' then' + '\nbegin'
         # Else
         elif inst == 'else':
             camlLine = 'end\nelse\nbegin'
         # While
         elif inst == 'while':
             loc.append('while')
-            camlLine = 'while ' + toto[0] + ' do'
+            camlLine = 'while ' + args[0] + ' do'
 
         else:
             camlLine = line_
-        print(camlLine)
         file_caml.write(camlLine + '\n')
 
     file_caml.close()
